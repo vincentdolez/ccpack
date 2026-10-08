@@ -36,12 +36,15 @@ Claude Code's behaviour on a project comes from layers spread across your machin
 
 ## Safety
 
+> [!WARNING]
+> **Install packages only from people you trust**, the way you'd treat their dotfiles. Version 0.1 has known issues with hand-crafted packages (see [TODO](#todo)). `inspect` reduces the risk but does not remove it.
+
 - **Secrets stay home.** Credential-looking values in MCP env, headers, args and URLs become `${VAR}` placeholders, and env vars or rules carrying a credential are dropped. Detection works by known formats and opaque-token shapes, so it can miss a secret in an unusual form. A final scan refuses to write a package that still matches. Run `ccpack inspect` on your package before you send it.
-- **Anything that runs code is opt-in, twice.** Hooks and hook scripts, plugins from local marketplaces, env vars beyond Claude Code's own switches (`PATH`, `BASH_ENV`, proxies…), and `statusLine` / `apiKeyHelper` commands are left out by default. The sender ticks what to include (`--include`). The receiver sees every command and ticks what to accept (`--accept`). `bypassPermissions` never travels.
-- **The receiver reviews first.** `ccpack inspect` and the install screen list every MCP server (command, URL, env, header names), plugin source, permission rule, env var and project file before anything is written. Packages are validated: no links, no `..`, only known paths, strict MCP shapes, settings filtered again on arrival. Writes never follow a link out of the project or the Claude config. MCP servers are registered once you confirm that list, and Claude Code won't prompt for them again. Plugins from git marketplaces can bring their own hooks, as they would with `claude plugin install`.
+- **Settings-level executables are opt-in, twice.** Hooks and hook scripts, plugins from local marketplaces, env vars beyond Claude Code's own switches (`PATH`, `BASH_ENV`, proxies…), and `statusLine` / `apiKeyHelper` commands are left out by default. The sender ticks what to include (`--include`), and the receiver ticks what to accept (`--accept`). `bypassPermissions` never travels. Skills, agents, commands and MCP servers that need no key are installed by default, and they can run code too: skills and agents through `allowed-tools`, `` !`cmd` `` lines or frontmatter hooks, MCP servers by starting. Read them in `inspect`.
+- **The receiver reviews first.** `ccpack inspect` and the interactive install screen list MCP servers (command, URL, env, header names), plugin sources, permission rules, env vars, project files and `command` hooks before anything is written. `--yes` and `--json` skip that screen. Packages are validated: no links, no `..`, only known paths, strict MCP shapes, settings filtered again on arrival. Skills, agents and project files are never written through a link out of the project or the Claude config. MCP servers are registered once you confirm, and Claude Code won't prompt for them again. Plugins from git marketplaces can bring their own hooks, as they would with `claude plugin install`.
 - **The receiver's choices win.** Existing settings, skills and MCP servers are kept. A same-name server is never merged into. Conflicts are reported, not overwritten.
 - **Undo reverts what ccpack changed, nothing else.** Every file, JSON key and line is journaled, by hash. `uninstall` restores original files and keeps anything changed since: a memory Claude updated, a rule you added. Keys typed in `connect` live only in `~/.claude.json`, and the journal is private (`0600`).
-- **No network, no telemetry from ccpack.** Only `claude plugin` calls reach plugin marketplaces.
+- **No telemetry from ccpack.** The network is reached by `claude plugin` (marketplaces), `connect` (`claude mcp list` connects to every server) and `verify --live` (one model call).
 
 What *is* shared on purpose: your instructions, user skills and auto-memory for the project. `inspect` your own package before sending it. Details in [SECURITY.md](SECURITY.md).
 
@@ -131,6 +134,21 @@ ccpack uninstall [project]
 ## TODO
 
 Known gaps, deliberately left for later. Contributions welcome.
+
+**Found in the final review of 0.1.0 — fix before relying on packages from untrusted sources:**
+
+- **`__proto__` keys** in a package's JSON can pollute `Object.prototype` during the merge, then corrupt `~/.claude.json`, settings and the journal. Fix: reject `__proto__`/`constructor`/`prototype` keys when loading JSON, use `Object.hasOwn` in `mergeJsonFile` and `overlay`.
+- **Undeclared `${VAR}` in an MCP config** gets expanded by Claude Code from the receiver's environment, so a server with no declared variable can exfiltrate an env secret, e.g. in a header. Fix: refuse any `${X}` that isn't in the server's `vars` or `HOME`, and show header values in `inspect`.
+- **`connect` fills every typed value into every server.** Fix: fill only the variables each server declares.
+- **Skills, agents and commands are not classified as executable.** That covers `allowed-tools` with Bash, `` !`cmd` `` lines, frontmatter `hooks` and `mcpServers`. Same for MCP servers that need no key. Fix: scan the frontmatter and add `mcp`/`skills` kinds, or keep the docs explicit as they are now.
+- **Valid setups refused at pack time.** Dated model ids such as `claude-sonnet-4-5-20250929`, and long repo names with digits, are flagged as opaque tokens. Fix: exempt `-YYYYMMDD` ids, and scan `plugins.json` for known formats only.
+- **Packages the receiver refuses.** Names starting with `_` or `.`, or containing spaces, produce such packages. Fix: validate at pack time with the same rules as the reader.
+- **Inspect completeness.** Hook types beyond `command` (http, prompt, agent, mcp_tool) are not shown. Bundled plugins' inline `hooks`, `mcpServers` and `lspServers` are not listed. The install screen truncates long lines and shows at most 8 lines per kind. Control characters (C1, bidi) in package strings are not all rejected.
+- **Templating false positives.** Boolean flags such as `--no-auth` swallow the next argument. 64-hex digests and dated ids get templated. A username-only URL is treated as a credential.
+- **Symlinked dotfiles in user mode.** A symlinked `~/.claude/CLAUDE.md` is replaced by a regular file. JSON config writes follow symlinks wherever they point. Destinations are not all checked before the first write.
+- **Small validation gaps.** A non-array `manifest.exec`, a top-level *file* named `files` or `memory`, and `.env*` files inside skills are not handled. Short `KEY=value` credentials in args are not templated.
+
+**Earlier known gaps:**
 
 - **Secret detection is heuristic.** Known formats, plus opaque tokens in JSON configs. A password written in prose in a memory file, or a token in an unusual shape, can pass. Always `inspect` before sending.
 - **Concurrent writes.** `~/.claude.json` is read-modified-written without a lock, and a running Claude Code session can race with install, connect or uninstall.
