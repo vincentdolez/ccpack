@@ -36,7 +36,7 @@ export function existingServer(project: string, name: string): string | null {
 const describeMcp = (c: JsonObj) => {
   const run = typeof c.command === "string" ? [c.command, ...((c.args as string[] | undefined) ?? [])].join(" ") : `${c.type} ${c.url}`;
   const env = isObj(c.env) ? Object.entries(c.env).map(([k, v]) => `${k}=${v}`) : [];
-  const headers = isObj(c.headers) ? Object.keys(c.headers).map((h) => `header ${h}`) : [];
+  const headers = isObj(c.headers) ? Object.entries(c.headers).map(([h, v]) => `header ${h}: ${v}`) : [];
   return [...env, run, ...headers].join(" ");
 };
 

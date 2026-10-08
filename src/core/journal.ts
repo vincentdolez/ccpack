@@ -4,7 +4,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { claude, claudeDir, claudeJson, exists, getAt, isObj, Json, JsonObj, loadJson, readText, sha256, slug, writeFile, writeJson } from "./util.js";
+import { claude, claudeDir, claudeJson, exists, getAt, isObj, UNSAFE_KEY, Json, JsonObj, loadJson, readText, sha256, slug, writeFile, writeJson } from "./util.js";
 
 type Key = string[];
 export type Action =
@@ -47,8 +47,9 @@ export function mergeJsonFile(p: string, add: JsonObj): { action: Action | null;
   const conflicts: string[] = [];
   const walk = (dst: JsonObj, src: JsonObj, at: Key) => {
     for (const [k, v] of Object.entries(src)) {
+      if (UNSAFE_KEY.has(k)) continue;
       const kp = [...at, k];
-      if (!(k in dst)) {
+      if (!Object.hasOwn(dst, k)) {
         if (isObj(v)) {
           dst[k] = {};
           a.containers.push(kp);

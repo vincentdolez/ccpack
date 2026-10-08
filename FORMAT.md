@@ -33,7 +33,7 @@ Excluded on the way out:
 - `permissions.defaultMode: bypassPermissions`;
 - permission rules containing a credential.
 
-In MCP configs, `${VAR}` marks a value the receiver provides. `${HOME}` is the receiver's home directory.
+In MCP configs, `${VAR}` marks a value the receiver provides; every `${VAR}` must be listed in that server's `vars` (readers refuse the package otherwise). `${HOME}` is the receiver's home directory.
 
 ## manifest.json
 

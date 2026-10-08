@@ -107,6 +107,9 @@ export function readPackage(dir: string): Package {
     if (!["project", "user", "local"].includes(e.scope)) fail(`MCP server ${n}: scope`);
     e.config = mcpShape(n, e.config);
     e.vars = (e.vars ?? []).map((v) => (/^[A-Z][A-Z0-9_]*$/.test(v) ? v : fail(`variable ${v}`)));
+    // Claude Code expands ${X} from the receiver's environment: an undeclared reference could carry any of their secrets out
+    for (const [, ref] of JSON.stringify(e.config).matchAll(/\$\{([^}]*)\}/g))
+      if (ref !== "HOME" && !e.vars.includes(ref)) fail(`MCP server ${n} references \${${ref}} without declaring it`);
   }
   const plugins = (loadJson(path.join(dir, F.plugins)).plugins ?? []) as unknown as PluginRef[];
   for (const p of plugins) {

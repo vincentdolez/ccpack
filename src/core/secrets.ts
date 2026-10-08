@@ -49,6 +49,7 @@ export function findSecrets(txt: string): string[] {
 const NOT_TOKENS = [
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, // UUID
   /^[0-9a-f]{40}$/i, // git commit
+  /-(19|20)\d{2}-?\d{2}-?\d{2}$/, // dated id (claude-sonnet-4-5-20250929, gpt-4o-mini-2024-07-18)
   /^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/, // UPPER_SNAKE identifier (a variable name)
   /(==|@)?v?\d+\.\d+(\.\d+)?([.-][\w.]+)?$/, // ends with a version
 ];
@@ -241,7 +242,7 @@ export function scanSecrets(dir: string): string[] {
     if (buf.includes(0)) continue;
     const txt = buf.toString("utf8");
     for (const n of findSecrets(txt)) hits.push(`${rel}: ${n}`);
-    if (!rel.includes(path.sep) && rel.endsWith(".json") && rel !== "manifest.json") {
+    if (!rel.includes(path.sep) && rel.endsWith(".json") && rel !== "manifest.json" && rel !== "plugins.json") {
       const strings: string[] = [];
       const walk = (v: unknown) => (typeof v === "string" ? strings.push(v) : Array.isArray(v) ? v.forEach(walk) : isObj(v) && Object.values(v).forEach(walk));
       walk(JSON.parse(txt));

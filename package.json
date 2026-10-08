@@ -1,6 +1,6 @@
 {
   "name": "ccpack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "git clone carries the code. ccpack carries the Claude \u2014 hand a teammate your Claude Code setup for one project, secrets stripped, fully reversible.",
   "type": "module",
   "bin": {

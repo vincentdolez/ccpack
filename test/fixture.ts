@@ -48,7 +48,7 @@ export function sourceMachine(tmp: string) {
   w(path.join(c, "CLAUDE.md"), "## Core Rules\n- user-level instruction\n\n<!-- ccpack:begin other ~/x -->\nfrom a previous install\n<!-- ccpack:end other ~/x -->\n");
   w(path.join(c, "rules", "style.md"), "## Style rule\n- terse\n");
   w(path.join(c, "settings.json"), {
-    language: "fr", effortLevel: "high", theme: "light",
+    language: "fr", effortLevel: "high", theme: "light", model: "claude-sonnet-4-5-20250929",
     env: {
       CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1", FEATURE_FLAG: "1", PATH: "/opt/bin:/usr/bin", BASH_ENV: "/tmp/x.sh",
       SLACK_BOT_TOKEN: SECRETS.settingsEnv, DB_PASS: SECRETS.dbPass, ANTHROPIC_BASE_URL: "https://proxy.corp",

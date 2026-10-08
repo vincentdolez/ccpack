@@ -30,9 +30,12 @@ export const isObj = (v: unknown): v is JsonObj => !!v && typeof v === "object" 
 export const getAt = (doc: unknown, keys: string[]): Json | undefined =>
   keys.reduce<unknown>((o, k) => (isObj(o) ? o[k] : undefined), doc) as Json | undefined;
 
+/** Keys that would reach Object.prototype during a merge: dropped from every JSON we read. */
+export const UNSAFE_KEY = new Set(["__proto__", "constructor", "prototype"]);
+
 export function loadJson(p: string): JsonObj {
   if (!exists(p)) return {};
-  const v = JSON.parse(readText(p));
+  const v = JSON.parse(readText(p), (k, x) => (UNSAFE_KEY.has(k) ? undefined : x));
   return isObj(v) ? v : {};
 }
 
@@ -67,7 +70,7 @@ export const copyFile = (src: string, dst: string) => writeFile(dst, fs.readFile
 export function overlay(base: Json, top: Json): Json {
   if (isObj(base) && isObj(top)) {
     const out: JsonObj = { ...base };
-    for (const [k, v] of Object.entries(top)) out[k] = k in base ? overlay(base[k], v) : v;
+    for (const [k, v] of Object.entries(top)) if (!UNSAFE_KEY.has(k)) out[k] = Object.hasOwn(base, k) ? overlay(base[k], v) : v;
     return out;
   }
   if (Array.isArray(base) && Array.isArray(top)) {

@@ -37,7 +37,7 @@ Claude Code's behaviour on a project comes from layers spread across your machin
 ## Safety
 
 > [!WARNING]
-> **Install packages only from people you trust**, the way you'd treat their dotfiles. Version 0.1 has known issues with hand-crafted packages (see [TODO](#todo)). `inspect` reduces the risk but does not remove it.
+> **Install packages only from people you trust**, the way you'd treat their dotfiles. Skills, agents and MCP servers can run code, and `inspect` doesn't itemise everything yet (see [TODO](#todo)).
 
 - **Secrets stay home.** Credential-looking values in MCP env, headers, args and URLs become `${VAR}` placeholders, and env vars or rules carrying a credential are dropped. Detection works by known formats and opaque-token shapes, so it can miss a secret in an unusual form. A final scan refuses to write a package that still matches. Run `ccpack inspect` on your package before you send it.
 - **Settings-level executables are opt-in, twice.** Hooks and hook scripts, plugins from local marketplaces, env vars beyond Claude Code's own switches (`PATH`, `BASH_ENV`, proxies…), and `statusLine` / `apiKeyHelper` commands are left out by default. The sender ticks what to include (`--include`), and the receiver ticks what to accept (`--accept`). `bypassPermissions` never travels. Skills, agents, commands and MCP servers that need no key are installed by default, and they can run code too: skills and agents through `allowed-tools`, `` !`cmd` `` lines or frontmatter hooks, MCP servers by starting. Read them in `inspect`.
@@ -135,13 +135,9 @@ ccpack uninstall [project]
 
 Known gaps, deliberately left for later. Contributions welcome.
 
-**Found in the final review of 0.1.0 — fix before relying on packages from untrusted sources:**
+**Open since the 0.1.0 review** (0.1.1 fixed `__proto__` merges, undeclared `${VAR}` references in MCP configs, `connect` filling undeclared servers, and dated model ids flagged as tokens):
 
-- **`__proto__` keys** in a package's JSON can pollute `Object.prototype` during the merge, then corrupt `~/.claude.json`, settings and the journal. Fix: reject `__proto__`/`constructor`/`prototype` keys when loading JSON, use `Object.hasOwn` in `mergeJsonFile` and `overlay`.
-- **Undeclared `${VAR}` in an MCP config** gets expanded by Claude Code from the receiver's environment, so a server with no declared variable can exfiltrate an env secret, e.g. in a header. Fix: refuse any `${X}` that isn't in the server's `vars` or `HOME`, and show header values in `inspect`.
-- **`connect` fills every typed value into every server.** Fix: fill only the variables each server declares.
 - **Skills, agents and commands are not classified as executable.** That covers `allowed-tools` with Bash, `` !`cmd` `` lines, frontmatter `hooks` and `mcpServers`. Same for MCP servers that need no key. Fix: scan the frontmatter and add `mcp`/`skills` kinds, or keep the docs explicit as they are now.
-- **Valid setups refused at pack time.** Dated model ids such as `claude-sonnet-4-5-20250929`, and long repo names with digits, are flagged as opaque tokens. Fix: exempt `-YYYYMMDD` ids, and scan `plugins.json` for known formats only.
 - **Packages the receiver refuses.** Names starting with `_` or `.`, or containing spaces, produce such packages. Fix: validate at pack time with the same rules as the reader.
 - **Inspect completeness.** Hook types beyond `command` (http, prompt, agent, mcp_tool) are not shown. Bundled plugins' inline `hooks`, `mcpServers` and `lspServers` are not listed. The install screen truncates long lines and shows at most 8 lines per kind. Control characters (C1, bidi) in package strings are not all rejected.
 - **Templating false positives.** Boolean flags such as `--no-auth` swallow the next argument. 64-hex digests and dated ids get templated. A username-only URL is treated as a credential.

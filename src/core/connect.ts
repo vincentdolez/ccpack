@@ -77,7 +77,8 @@ export function applySecrets(projectArg: string, values: Record<string, string>,
       writeJson(claudeJson(), doc);
       replaced = j.actions.splice(ours, 1)[0];
     }
-    const add = key.reduceRight<JsonObj>((acc, k) => ({ [k]: acc }), fillVars(e.config, values));
+    const own = Object.fromEntries(e.vars.map((v) => [v, values[v]])); // only the keys this server declares
+    const add = key.reduceRight<JsonObj>((acc, k) => ({ [k]: acc }), fillVars(e.config, own));
     const { action } = mergeJsonFile(claudeJson(), add);
     // containers the replaced registration created (e.g. mcpServers) still belong to ccpack
     if (action?.t === "json" && replaced?.t === "json") action.containers.push(...replaced.containers);
