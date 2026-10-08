@@ -1,0 +1,8 @@
+node_modules/
+build/
+dist/
+*.ccpack/
+*.ccpack.tar.gz
+test/docker/*.tgz
+.DS_Store
+.env
